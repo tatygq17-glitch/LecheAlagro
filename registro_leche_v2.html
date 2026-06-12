@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Leche — Alagro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --verde:#1a5c38;
+  --verde2:#2d8653;
+  --verde-light:#e8f5ee;
+  --amarillo:#f5a623;
+  --crema:#fafaf7;
+  --texto:#111827;
+  --gris:#6b7280;
+  --borde:#e5e7eb;
+  --rojo:#dc2626;
+  --azul:#1d4ed8;
+  --shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--crema);color:var(--texto);min-height:100vh}
+
+/* HEADER */
+header{
+  background:linear-gradient(135deg,var(--verde) 0%,var(--verde2) 100%);
+  color:white;padding:0;
+}
+.header-inner{
+  max-width:1100px;margin:0 auto;padding:18px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.header-brand{display:flex;align-items:center;gap:14px}
+.header-icon{
+  width:48px;height:48px;background:rgba(255,255,255,0.15);
+  border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;
+}
+.header-title{font-size:20px;font-weight:800;letter-spacing:-0.5px}
+.header-sub{font-size:13px;opacity:0.75;margin-top:2px}
+.header-stats{display:flex;gap:20px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-num{font-size:22px;font-weight:800;line-height:1}
+.stat-label{font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:24px 16px}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:white;padding:6px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:24px}
+.tab{
+  flex:1;padding:10px;text-align:center;border:none;background:none;
+  border-radius:8px;font-size:13px;font-weight:600;color:var(--gris);cursor:pointer;transition:0.2s;
+}
+.tab.active{background:var(--verde);color:white}
+.tab:hover:not(.active){background:var(--verde-light);color:var(--verde)}
+
+/* PANEL */
+.panel{display:none}.panel.active{display:block}
+
+/* CARD */
+.card{background:white;border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:15px;font-weight:700;color:var(--verde);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* UPLOAD */
+.upload-zone{
+  border:2.5px dashed #a7d7bc;border-radius:14px;padding:36px 20px;
+  text-align:center;cursor:pointer;position:relative;transition:0.2s;background:#f7fcf9;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--verde);background:var(--verde-light)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:44px;margin-bottom:10px}
+.upload-title{font-size:17px;font-weight:700;color:var(--verde);margin-bottom:6px}
+.upload-sub{font-size:13px;color:var(--gris)}
+
+/* PREVIEW */
+#preview-wrap{display:none;margin-top:16px}
+#preview-img{width:100%;max-height:280px;object-fit:contain;border-radius:10px;border:1px solid var(--borde)}
+
+/* FORM FIELDS */
+.fields-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:16px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
+.field input,.field select{
+  width:100%;padding:10px 12px;border:1.5px solid var(--borde);
+  border-radius:8px;font-size:14px;background:white;transition:0.2s;
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--verde2)}
+
+/* BUTTONS */
+.btn{
+  padding:12px 20px;border:none;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;transition:0.2s;display:inline-flex;align-items:center;gap:7px;
+}
+.btn-verde{background:var(--verde);color:white}
+.btn-verde:hover{background:#134d2e}
+.btn-verde:disabled{background:#9ca3af;cursor:not-allowed}
+.btn-outline{background:white;color:var(--verde);border:2px solid var(--verde)}
+.btn-outline:hover{background:var(--verde-light)}
+.btn-rojo{background:#fef2f2;color:var(--rojo);border:1.5px solid #fecaca}
+.btn-rojo:hover{background:#fee2e2}
+.btn-full{width:100%;justify-content:center;margin-top:14px}
+.btn-amarillo{background:var(--amarillo);color:white}
+.btn-amarillo:hover{background:#d4921f}
+
+/* STATUS */
+.status{
+  display:none;margin-top:12px;padding:12px 16px;border-radius:10px;
+  font-size:13px;align-items:center;gap:10px;
+}
+.status.loading{display:flex;background:#eff6ff;color:var(--azul);border:1px solid #bfdbfe}
+.status.ok{display:flex;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.status.err{display:flex;background:#fef2f2;color:var(--rojo);border:1px solid #fecaca}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--borde)}
+table{width:100%;border-collapse:collapse;font-size:13px;background:white}
+thead{background:var(--verde);color:white}
+thead th{padding:10px 12px;text-align:left;font-weight:600;white-space:nowrap}
+tbody tr:nth-child(even){background:#f9fafb}
+tbody tr:hover{background:var(--verde-light)}
+td{padding:8px 12px;border-bottom:1px solid #f3f4f6;white-space:nowrap}
+td.edit input,td.edit select{
+  width:100%;padding:4px 6px;border:1px solid transparent;border-radius:4px;
+  font-size:13px;background:transparent;
+}
+td.edit input:focus,td.edit select:focus{border-color:var(--verde2);background:white;outline:none}
+td.num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.del-btn{background:none;border:none;cursor:pointer;color:#ef4444;font-size:15px;padding:2px 6px;border-radius:4px}
+.del-btn:hover{background:#fef2f2}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+.am{background:#fef3c7;color:#92400e}
+.pm{background:#ede9fe;color:#5b21b6}
+
+/* TOTALES */
+tfoot td{font-weight:700;background:var(--verde-light)!important;color:var(--verde);border-top:2px solid #a7d7bc}
+
+/* FILTERS */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
+.filters .field{margin:0}
+.filters label{font-size:11px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px}
+.filters input,.filters select{padding:8px 10px;border:1.5px solid var(--borde);border-radius:8px;font-size:13px}
+
+/* ACCIONES ROW */
+.acciones{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--gris)}
+.empty-icon{font-size:40px;margin-bottom:10px}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .header-stats{display:none}
+  .acciones{flex-direction:column}
+  .acciones .btn{justify-content:center}
+}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:white;
+  padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;
+  opacity:0;transform:translateY(10px);transition:0.3s;pointer-events:none;z-index:999;
+}
+#toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="header-icon">🥛</div>
+      <div>
+        <div class="header-title">Registro de Leche — Alagro</div>
+        <div class="header-sub">Control diario AM / PM por tanque y productor</div>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat"><div class="stat-num" id="h-registros">0</div><div class="stat-label">Registros</div></div>
+      <div class="stat"><div class="stat-num" id="h-productores">0</div><div class="stat-label">Productores</div></div>
+      <div class="stat"><div class="stat-num" id="h-litros">0</div><div class="stat-label">Litros totales</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('cargar')">📷 Cargar foto</button>
+    <button class="tab" onclick="showTab('registros')">📋 Registros</button>
+    <button class="tab" onclick="showTab('exportar')">📥 Exportar Excel</button>
+  </div>
+
+  <!-- TAB: CARGAR -->
+  <div class="panel active" id="tab-cargar">
+    <div class="card">
+      <div class="card-title">📷 Subir foto de la hoja</div>
+      <div class="upload-zone" id="drop-zone" onclick="event.stopPropagation()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">Selecciona cómo cargar la imagen</div>
+        <div class="upload-sub">Elige una opción según desde dónde viene la foto</div>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+          <label class="btn btn-verde" style="cursor:pointer">
+            📷 Tomar foto
+            <input type="file" id="file-input-camera" accept="image/*" capture="environment" style="display:none">
+          </label>
+          <label class="btn btn-outline" style="cursor:pointer">
+            🖼️ Elegir de galería
+            <input type="file" id="file-input-gallery" accept="image/*" style="display:none">
+          </label>
+        </div>
+      </div>
+      <div id="preview-wrap"><img id="preview-img" alt="Vista previa"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚙️ Confirmar datos (opcional — la IA los detecta sola)</div>
+      <div class="fields-row">
+        <div class="field">
+          <label>Tanque (auto)</label>
+          <input type="text" id="f-tanque" placeholder="Ej: ENEA, La Palma...">
+        </div>
+        <div class="field">
+          <label>Fecha (auto)</label>
+          <input type="date" id="f-fecha">
+        </div>
+        <div class="field">
+          <label>Jornada (auto)</label>
+          <select id="f-jornada">
+            <option value="">— Detectar automáticamente —</option>
+            <option value="AM">AM – Mañana</option>
+            <option value="PM">PM – Tarde</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-verde btn-full" id="btn-analizar" disabled>
+        🤖 Analizar imagen y extraer datos
+      </button>
+      <div class="status" id="status">
+        <div class="spin" id="spin" style="display:none"></div>
+        <span id="status-msg"></span>
+      </div>
+    </div>
+
+    <!-- PREVIEW DE NUEVOS REGISTROS -->
+    <div id="preview-nuevos" style="display:none">
+      <div class="card">
+        <div class="card-title">✅ Registros encontrados — revisa antes de guardar</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Tanque</th><th>Productor</th><th>Fecha</th><th>Jornada</th><th>Litros</th><th></th></tr></thead>
+            <tbody id="nuevos-body"></tbody>
+          </table>
+        </div>
+        <div class="acciones">
+          <button class="btn btn-verde" onclick="guardarNuevos()">💾 Guardar todos en registros</button>
+          <button class="btn btn-outline" onclick="addFilaNueva()">➕ Agregar fila</button>
+          <button class="btn btn-rojo" onclick="cancelarNuevos()">✕ Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: REGISTROS -->
+  <div class="panel" id="tab-registros">
+    <div class="card">
+      <div class="card-title">🔍 Filtrar registros</div>
+      <div class="filters">
+        <div class="field"><label>Tanque</label><select id="fil-tanque" onchange="renderRegistros()"><option value="">Todos</option></select></div>
+        <div class="field"><label>Productor</label><input type="text" id="fil-productor" placeholder="Buscar..." oninput="renderRegistros()"></div>
+        <div class="field"><label>Fecha desde</label><input type="date" id="fil-desde" onchange="renderRegistros()"></div>
+        <div class="field"><label>Fecha hasta</label><input type="date" id="fil-hasta" onchange="renderRegistros()"></div>
+        <div class="field"><label>Jornada</label>
+          <select id="fil-jornada" onchange="renderRegistros()">
+            <option value="">AM y PM</option>
+            <option value="AM">Solo AM</option>
+            <option value="PM">Solo PM</option>
+          </select>
+        </div>
+        <button class="btn btn-outline" onclick="limpiarFiltros()" style="align-self:flex-end">↺ Limpiar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Registros guardados</div>
+      <div id="tabla-registros-wrap">
+        <div class="empty"><div class="empty-icon">📭</div><div>Aún no hay registros. Carga una foto para comenzar.</div></div>
+      </div>
+      <div class="acciones">
+        <button class="btn btn-outline" onclick="addFilaManual()">➕ Agregar manualmente</button>
+        <button class="btn btn-rojo" onclick="borrarTodo()">🗑️ Borrar todo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: EXPORTAR -->
+  <div class="panel" id="tab-exportar">
+    <div class="card">
+      <div class="card-title">📥 Exportar a Excel</div>
+      <p style="color:var(--gris);font-size:14px;margin-bottom:16px">
+        El archivo tendrá <strong>3 hojas</strong>: Detalle completo · Resumen por productor · Vista por día
+      </p>
+      <div class="fields-row">
+        <div class="field">
+          <label>Filtrar por tanque</label>
+          <select id="exp-tanque"><option value="">Todos los tanques</option></select>
+        </div>
+        <div class="field">
+          <label>Fecha desde</label>
+          <input type="date" id="exp-desde">
+        </div>
+        <div class="field">
+          <label>Fecha hasta</label>
+          <input type="date" id="exp-hasta">
+        </div>
+      </div>
+      <div class="acciones" style="margin-top:16px">
+        <button class="btn btn-amarillo" onclick="exportarExcel()">📥 Descargar Excel</button>
+      </div>
+    </div>
+
+    <div class="card" id="preview-export" style="display:none">
+      <div class="card-title">👁️ Vista previa del export</div>
+      <div id="preview-export-content"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let registros = JSON.parse(localStorage.getItem('alagro_registros') || '[]');
+let nuevosTemp = [];
+let imgBase64 = '';
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = () => {
+  const hoy = new Date().toISOString().slice(0,10);
+  document.getElementById('f-fecha').value = hoy;
+  actualizarStats();
+  renderFiltrosTanque();
+};
+
+function guardar() {
+  localStorage.setItem('alagro_registros', JSON.stringify(registros));
+  actualizarStats();
+  renderFiltrosTanque();
+}
+
+function actualizarStats() {
+  document.getElementById('h-registros').textContent = registros.length.toLocaleString('es-CO');
+  document.getElementById('h-productores').textContent = [...new Set(registros.map(r=>r.productor))].length;
+  document.getElementById('h-litros').textContent = registros.reduce((s,r)=>s+(+r.litros||0),0).toLocaleString('es-CO');
+}
+
+function renderFiltrosTanque() {
+  const tanques = [...new Set(registros.map(r=>r.tanque))].sort();
+  ['fil-tanque','exp-tanque'].forEach(id => {
+    const sel = document.getElementById(id);
+    const val = sel.value;
+    sel.innerHTML = `<option value="">Todos los tanques</option>` +
+      tanques.map(t=>`<option value="${t}" ${t===val?'selected':''}>${t}</option>`).join('');
+  });
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const names=['cargar','registros','exportar'];
+    t.classList.toggle('active', names[i]===name);
+  });
+  document.querySelectorAll('.panel').forEach((p,i)=>{
+    const names=['cargar','registros','exportar'];
+    p.classList.toggle('active', names[i]===name);
+  });
+  if(name==='registros') renderRegistros();
+  if(name==='exportar') prepExport();
+}
+
+// ============================================================
+// UPLOAD
+// ============================================================
+document.getElementById('file-input-camera').addEventListener('change', e => {
+  if(e.target.files[0]) cargarArchivo(e.target.files[0]);
+});
+document.getElementById('file-input-gallery').addEventListener('change', e => {
+  if(e.target.files[0]) cargarArchivo(e.target.files[0]);
+});
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('drag'));
+dz.addEventListener('drop', e=>{
+  e.preventDefault();dz.classList.remove('drag');
+  if(e.dataTransfer.files[0]) cargarArchivo(e.dataTransfer.files[0]);
+});
+
+function cargarArchivo(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imgBase64 = ev.target.result.split(',')[1];
+    document.getElementById('preview-img').src = ev.target.result;
+    document.getElementById('preview-wrap').style.display = 'block';
+    document.getElementById('btn-analizar').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+// ANALYZE
+// ============================================================
+document.getElementById('btn-analizar').addEventListener('click', analizarImagen);
+
+async function analizarImagen() {
+  const btn = document.getElementById('btn-analizar');
+  btn.disabled = true;
+  setStatus('loading', 'Analizando la imagen…');
+
+  const tanqueHint = document.getElementById('f-tanque').value.trim();
+  const fechaHint  = document.getElementById('f-fecha').value;
+  const jornadaHint = document.getElementById('f-jornada').value;
+
+  const prompt = `Eres un experto en leer hojas de registro de leche escritas a mano de fincas ganaderas colombianas.
+
+Analiza esta imagen con mucho cuidado y extrae TODOS los datos visibles.
+
+La hoja puede contener:
+- El nombre del TANQUE escrito en algún lugar (ej: "ENEA", "La Palma", etc.)
+- Una FECHA o rango de fechas
+- Indicación de JORNADA: "AM" o mañana, "PM" o tarde
+- Nombres de PRODUCTORES (generalmente en la primera columna, escritos con letra cursiva o de mano)
+- LITROS de leche: números al lado de cada nombre
+
+${tanqueHint ? `Pista del usuario: el tanque es "${tanqueHint}"` : ''}
+${fechaHint ? `Pista del usuario: la fecha es ${fechaHint}` : ''}
+${jornadaHint ? `Pista del usuario: la jornada es ${jornadaHint}` : ''}
+
+Si la hoja tiene varias columnas de días, crea un registro por cada combinación productor-día con litros > 0.
+Si hay dos valores por día (AM arriba, PM abajo), crea dos registros separados.
+Si no puedes determinar la fecha exacta, usa el formato YYYY-MM-DD con la mejor estimación o deja "desconocida".
+Si no puedes determinar la jornada, usa "AM" como predeterminado.
+
+Devuelve ÚNICAMENTE JSON válido sin markdown ni explicaciones:
+{
+  "tanque": "nombre del tanque detectado",
+  "registros": [
+    {
+      "productor": "Nombre Apellido",
+      "fecha": "2024-06-15",
+      "jornada": "AM",
+      "litros": 35
+    }
+  ]
+}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': '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',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-request-browser': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [
+            {type:'image', source:{type:'base64', media_type:'image/jpeg', data: imgBase64}},
+            {type:'text', text: prompt}
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message);
+
+    const text = data.content.map(c=>c.text||'').join('');
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    if(!parsed.registros || parsed.registros.length === 0)
+      throw new Error('No se encontraron registros. Intenta con una foto más nítida.');
+
+    // Aplicar tanque detectado si el usuario no puso uno
+    const tanqueDetectado = tanqueHint || parsed.tanque || 'Sin tanque';
+    nuevosTemp = parsed.registros.map(r => ({
+      id: Date.now() + Math.random(),
+      tanque: tanqueDetectado,
+      productor: r.productor || '',
+      fecha: r.fecha || fechaHint || new Date().toISOString().slice(0,10),
+      jornada: r.jornada || jornadaHint || 'AM',
+      litros: +r.litros || 0
+    }));
+
+    renderNuevos();
+    setStatus('ok', `✅ Se detectaron ${nuevosTemp.length} registros del tanque "${tanqueDetectado}". Revisa y guarda.`);
+    document.getElementById('preview-nuevos').style.display = 'block';
+
+  } catch(err) {
+    setStatus('err', '❌ ' + err.message);
+    btn.disabled = false;
+  }
+}
+
+function renderNuevos() {
+  const tbody = document.getElementById('nuevos-body');
+  tbody.innerHTML = '';
+  nuevosTemp.forEach((r, i) => {
+    tbody.innerHTML += `<tr>
+      <td style="color:var(--gris);font-size:12px">${i+1}</td>
+      <td class="edit"><input value="${esc(r.tanque)}" onchange="nuevosTemp[${i}].tanque=this.value"></td>
+      <td class="edit"><input value="${esc(r.productor)}" onchange="nuevosTemp[${i}].productor=this.value" style="min-width:140px"></td>
+      <td class="edit"><input type="date" value="${r.fecha}" onchange="nuevosTemp[${i}].fecha=this.value"></td>
+      <td class="edit">
+        <select onchange="nuevosTemp[${i}].jornada=this.value">
+          <option ${r.jornada==='AM'?'selected':''}>AM</option>
+          <option ${r.jornada==='PM'?'selected':''}>PM</option>
+        </select>
+      </td>
+      <td class="edit num"><input type="number" min="0" value="${r.litros}" onchange="nuevosTemp[${i}].litros=+this.value" style="width:70px;text-align:right"></td>
+      <td><button class="del-btn" onclick="nuevosTemp.splice(${i},1);renderNuevos()">✕</button></td>
+    </tr>`;
+  });
+}
+
+function addFilaNueva() {
+  nuevosTemp.push({id:Date.now()+Math.random(), tanque:document.getElementById('f-tanque').value||'', productor:'', fecha:document.getElementById('f-fecha').value, jornada:'AM', litros:0});
+  renderNuevos();
+}
+
+function guardarNuevos() {
+  if(nuevosTemp.length===0){toast('No hay registros para guardar');return;}
+  registros.push(...nuevosTemp);
+  guardar();
+  nuevosTemp = [];
+  document.getElementById('preview-nuevos').style.display = 'none';
+  document.getElementById('btn-analizar').disabled = true;
+  document.getElementById('preview-wrap').style.display = 'none';
+  imgBase64 = '';
+  document.getElementById('file-input').value = '';
+  hideStatus();
+  toast(`✅ ${nuevosTemp.length || 'Registros'} guardados correctamente`);
+  actualizarStats();
+}
+
+function cancelarNuevos() {
+  nuevosTemp = [];
+  document.getElementById('preview-nuevos').style.display = 'none';
+  hideStatus();
+}
+
+// ============================================================
+// REGISTROS
+// ============================================================
+function getRegistrosFiltrados() {
+  const ft = document.getElementById('fil-tanque').value.toLowerCase();
+  const fp = document.getElementById('fil-productor').value.toLowerCase();
+  const fd = document.getElementById('fil-desde').value;
+  const fh = document.getElementById('fil-hasta').value;
+  const fj = document.getElementById('fil-jornada').value;
+  return registros.filter(r => {
+    if(ft && r.tanque.toLowerCase() !== ft) return false;
+    if(fp && !r.productor.toLowerCase().includes(fp)) return false;
+    if(fd && r.fecha < fd) return false;
+    if(fh && r.fecha > fh) return false;
+    if(fj && r.jornada !== fj) return false;
+    return true;
+  });
+}
+
+function renderRegistros() {
+  const wrap = document.getElementById('tabla-registros-wrap');
+  const data = getRegistrosFiltrados();
+
+  if(data.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div>${registros.length===0?'Aún no hay registros. Carga una foto para comenzar.':'No hay registros que coincidan con los filtros.'}</div></div>`;
+    return;
+  }
+
+  const totalLitros = data.reduce((s,r)=>s+(+r.litros||0),0);
+
+  let rows = data.map((r,i) => {
+    const idx = registros.indexOf(r);
+    return `<tr>
+      <td style="color:var(--gris);font-size:11px">${i+1}</td>
+      <td class="edit"><input value="${esc(r.tanque)}" onchange="registros[${idx}].tanque=this.value;guardar()" style="min-width:80px"></td>
+      <td class="edit"><input value="${esc(r.productor)}" onchange="registros[${idx}].productor=this.value;guardar()" style="min-width:140px"></td>
+      <td class="edit"><input type="date" value="${r.fecha}" onchange="registros[${idx}].fecha=this.value;guardar()"></td>
+      <td><span class="badge ${r.jornada==='AM'?'am':'pm'}">${r.jornada}</span></td>
+      <td class="num edit"><input type="number" min="0" value="${r.litros}" onchange="registros[${idx}].litros=+this.value;guardar()" style="width:70px;text-align:right"></td>
+      <td><button class="del-btn" onclick="borrarRegistro(${idx})">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>Tanque</th><th>Productor</th><th>Fecha</th><th>Jornada</th><th>Litros</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr>
+      <td colspan="5" style="text-align:right;padding-right:12px">TOTAL (${data.length} registros)</td>
+      <td class="num">${totalLitros.toLocaleString('es-CO')}</td><td></td>
+    </tr></tfoot>
+  </table></div>`;
+}
+
+function borrarRegistro(i) {
+  if(confirm('¿Eliminar este registro?')) {
+    registros.splice(i,1);
+    guardar();
+    renderRegistros();
+  }
+}
+
+function addFilaManual() {
+  registros.push({id:Date.now(), tanque:'', productor:'', fecha:new Date().toISOString().slice(0,10), jornada:'AM', litros:0});
+  guardar();
+  renderRegistros();
+}
+
+function limpiarFiltros() {
+  ['fil-tanque','fil-jornada'].forEach(id=>document.getElementById(id).value='');
+  ['fil-productor'].forEach(id=>document.getElementById(id).value='');
+  ['fil-desde','fil-hasta'].forEach(id=>document.getElementById(id).value='');
+  renderRegistros();
+}
+
+function borrarTodo() {
+  if(confirm('⚠️ ¿Borrar TODOS los registros? Esta acción no se puede deshacer.')) {
+    registros = [];
+    guardar();
+    renderRegistros();
+  }
+}
+
+// ============================================================
+// EXPORT EXCEL
+// ============================================================
+function prepExport() {
+  renderFiltrosTanque();
+}
+
+function getExportData() {
+  const ft = document.getElementById('exp-tanque').value;
+  const fd = document.getElementById('exp-desde').value;
+  const fh = document.getElementById('exp-hasta').value;
+  return registros.filter(r => {
+    if(ft && r.tanque !== ft) return false;
+    if(fd && r.fecha < fd) return false;
+    if(fh && r.fecha > fh) return false;
+    return true;
+  }).sort((a,b) => a.fecha.localeCompare(b.fecha) || a.tanque.localeCompare(b.tanque) || a.productor.localeCompare(b.productor) || a.jornada.localeCompare(b.jornada));
+}
+
+function exportarExcel() {
+  const data = getExportData();
+  if(data.length === 0) {toast('No hay datos para exportar');return;}
+
+  const wb = XLSX.utils.book_new();
+
+  // HOJA 1: Detalle completo
+  const det = [['TANQUE','PRODUCTOR','FECHA','JORNADA','LITROS']];
+  data.forEach(r => det.push([r.tanque, r.productor, r.fecha, r.jornada, +r.litros]));
+  det.push([]);
+  det.push(['','','','TOTAL', data.reduce((s,r)=>s+(+r.litros||0),0)]);
+  const ws1 = XLSX.utils.aoa_to_sheet(det);
+  ws1['!cols'] = [{wch:14},{wch:22},{wch:12},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Detalle');
+
+  // HOJA 2: Resumen por productor
+  const prodMap = {};
+  data.forEach(r => {
+    const k = r.tanque+'|'+r.productor;
+    if(!prodMap[k]) prodMap[k]={tanque:r.tanque, productor:r.productor, AM:0, PM:0};
+    prodMap[k][r.jornada] = (prodMap[k][r.jornada]||0) + (+r.litros||0);
+  });
+  const res = [['TANQUE','PRODUCTOR','TOTAL AM','TOTAL PM','TOTAL GENERAL']];
+  Object.values(prodMap).forEach(p => res.push([p.tanque, p.productor, p.AM, p.PM, p.AM+p.PM]));
+  res.push([]);
+  const tAM = Object.values(prodMap).reduce((s,p)=>s+p.AM,0);
+  const tPM = Object.values(prodMap).reduce((s,p)=>s+p.PM,0);
+  res.push(['','TOTAL',tAM,tPM,tAM+tPM]);
+  const ws2 = XLSX.utils.aoa_to_sheet(res);
+  ws2['!cols'] = [{wch:14},{wch:22},{wch:12},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumen por Productor');
+
+  // HOJA 3: Por día (fecha × productor, separado AM/PM)
+  const fechas = [...new Set(data.map(r=>r.fecha))].sort();
+  const prods  = [...new Set(data.map(r=>r.productor))].sort();
+  const pivot  = [['FECHA','JORNADA',...prods]];
+  fechas.forEach(f => {
+    ['AM','PM'].forEach(j => {
+      const fila = [f, j];
+      let tieneData = false;
+      prods.forEach(p => {
+        const reg = data.find(r=>r.fecha===f&&r.productor===p&&r.jornada===j);
+        const v = reg ? +reg.litros : '';
+        if(v) tieneData = true;
+        fila.push(v);
+      });
+      if(tieneData) pivot.push(fila);
+    });
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(pivot);
+  ws3['!cols'] = [{wch:12},{wch:10},...prods.map(()=>({wch:14}))];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Por Día y Jornada');
+
+  const tanque = document.getElementById('exp-tanque').value || 'todos';
+  const fecha  = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Leche_${tanque}_${fecha}.xlsx`);
+  toast('📥 Excel descargado correctamente');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function setStatus(type, msg) {
+  const box = document.getElementById('status');
+  box.className = 'status ' + type;
+  document.getElementById('spin').style.display = type==='loading'?'block':'none';
+  document.getElementById('status-msg').textContent = msg;
+}
+function hideStatus() { document.getElementById('status').className = 'status'; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
